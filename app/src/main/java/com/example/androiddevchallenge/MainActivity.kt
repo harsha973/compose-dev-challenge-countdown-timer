@@ -39,6 +39,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.androiddevchallenge.ui.theme.MyTheme
 import java.util.*
+import java.util.concurrent.TimeUnit
+
 
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -63,17 +65,25 @@ fun MyApp() {
 fun TimerView() {
     var timerText by remember { mutableStateOf("00:00:00") }
     val onFinished = { timerText = "00:00:00" }
+    var buttonState by remember { mutableStateOf(ButtonState.INITIAL) }
 
     val timer by remember {
         mutableStateOf(
             countDownTimer(
-                onTickCallback = { timerText = it.toString() },
-                onFinished = onFinished
+                onTickCallback = { millis ->
+                    timerText = hms(millis)
+                },
+                onFinished = {
+                    buttonState = when (buttonState) {
+                        ButtonState.INITIAL -> ButtonState.LAUNCHED
+                        else -> ButtonState.INITIAL
+                    }
+                    timerText = "00:00:00"
+                }
             )
         )
     }
 
-    var buttonState by remember { mutableStateOf(ButtonState.INITIAL) }
     val onClick: () -> Unit = {
         buttonState = when (buttonState) {
             ButtonState.INITIAL -> {
@@ -140,6 +150,13 @@ fun TimerView() {
     }
 
 }
+
+private fun hms(millis: Long) = String.format(
+    Locale.getDefault(),
+    "%02d:%02d:%02d", TimeUnit.MILLISECONDS.toHours(millis),
+    TimeUnit.MILLISECONDS.toMinutes(millis) % TimeUnit.HOURS.toMinutes(1),
+    TimeUnit.MILLISECONDS.toSeconds(millis) % TimeUnit.MINUTES.toSeconds(1)
+)
 
 private fun countDownTimer(
     onTickCallback: (Long) -> Unit,
