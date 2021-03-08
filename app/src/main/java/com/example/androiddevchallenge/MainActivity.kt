@@ -28,13 +28,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.androiddevchallenge.ui.theme.MyTheme
@@ -57,124 +51,11 @@ class MainActivity : AppCompatActivity() {
 @Composable
 fun MyApp() {
     Surface(color = MaterialTheme.colors.background) {
-        TimerView()
-    }
-}
-
-@Composable
-fun TimerView() {
-    var timerText by remember { mutableStateOf("00:00:00") }
-    val onFinished = { timerText = "00:00:00" }
-    var buttonState by remember { mutableStateOf(ButtonState.INITIAL) }
-
-    val timer by remember {
-        mutableStateOf(
-            countDownTimer(
-                onTickCallback = { millis ->
-                    timerText = hms(millis)
-                },
-                onFinished = {
-                    buttonState = when (buttonState) {
-                        ButtonState.INITIAL -> ButtonState.LAUNCHED
-                        else -> ButtonState.INITIAL
-                    }
-                    timerText = "00:00:00"
-                }
-            )
-        )
-    }
-
-    val onClick: () -> Unit = {
-        buttonState = when (buttonState) {
-            ButtonState.INITIAL -> {
-                timer.start()
-                ButtonState.LAUNCHED
-            }
-            else -> {
-                timer.cancel()
-                onFinished()
-                ButtonState.INITIAL
-            }
-        }
-    }
-    val transition = updateTransition(targetState = buttonState)
-
-    val buttonColor by transition.animateColor {
-        when (it) {
-            ButtonState.INITIAL -> MaterialTheme.colors.primary
-            ButtonState.LAUNCHED -> Color.Red
-        }
-    }
-
-    val roundedCornerSize by transition.animateDp {
-        when (it) {
-            ButtonState.INITIAL -> 6.dp
-            ButtonState.LAUNCHED -> 50.dp
-        }
-    }
-
-    Box(
-        Modifier
-            .padding(16.dp)
-            .fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            modifier = Modifier
-                .wrapContentWidth()
-                .wrapContentHeight(),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(text = timerText)
-            Spacer(modifier = Modifier.padding(16.dp))
-            Button(
-                onClick = onClick,
-                colors = ButtonDefaults.buttonColors(
-                    backgroundColor = buttonColor,
-                    contentColor = MaterialTheme.colors.onPrimary
-                ),
-                modifier = Modifier.animateContentSize(),
-                shape = RoundedCornerShape(roundedCornerSize)
-            )
-            {
-                when (buttonState) {
-                    ButtonState.INITIAL -> {
-                        Text("Launch")
-                    }
-                    ButtonState.LAUNCHED -> {
-                        Text("Stop")
-                    }
-                }
-            }
-        }
-    }
-
-}
-
-private fun hms(millis: Long) = String.format(
-    Locale.getDefault(),
-    "%02d:%02d:%02d", TimeUnit.MILLISECONDS.toHours(millis),
-    TimeUnit.MILLISECONDS.toMinutes(millis) % TimeUnit.HOURS.toMinutes(1),
-    TimeUnit.MILLISECONDS.toSeconds(millis) % TimeUnit.MINUTES.toSeconds(1)
-)
-
-private fun countDownTimer(
-    onTickCallback: (Long) -> Unit,
-    onFinished: () -> Unit
-): CountDownTimer {
-    return object : CountDownTimer(10000L, 1000L) {
-        override fun onTick(millisUntilFinished: Long) {
-            onTickCallback(millisUntilFinished)
+        BoxWithConstraints {
+            TimerView(maxWidth, maxHeight)
         }
 
-        override fun onFinish() {
-            onFinished()
-        }
     }
-}
-
-enum class ButtonState {
-    INITIAL, LAUNCHED
 }
 
 @Preview("Light Theme", widthDp = 360, heightDp = 640)
