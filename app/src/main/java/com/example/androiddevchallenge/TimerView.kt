@@ -9,6 +9,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Button
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
@@ -18,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
@@ -36,9 +38,15 @@ fun TimerView(
     maxHeight: Dp,
 ) {
     val initialTimerText = "00:00:00"
-    var timerText by remember { mutableStateOf(initialTimerText) }
     var buttonState by remember { mutableStateOf(ButtonState.INITIAL) }
-    val countDownTimerMillis by remember { mutableStateOf(3000L) }
+    var countDownTimerMillis by remember { mutableStateOf(3000L) }
+    var timerText by remember {
+        val text = when (buttonState) {
+            ButtonState.INITIAL -> initialTimerText
+            else -> hms(countDownTimerMillis)
+        }
+        mutableStateOf(text)
+    }
 
     val buttonStateTransition = updateTransition(targetState = buttonState)
 
@@ -46,12 +54,13 @@ fun TimerView(
         {
             TweenSpec(
                 easing = LinearEasing,
-                durationMillis = if (buttonState == ButtonState.INITIAL) 1 else countDownTimerMillis.toInt(),
+                durationMillis = if (buttonState == ButtonState.LAUNCHED) countDownTimerMillis.toInt() else 1,
             )
         }) {
-        if (it == ButtonState.INITIAL) 1f else 0f
+        if (it == ButtonState.LAUNCHED) 0f else 1f
     }
 
+//   timerText =
 
     val timer by remember {
         mutableStateOf(
@@ -62,19 +71,17 @@ fun TimerView(
                     timerText = hms(millis)
                 },
                 onFinished = {
-                    buttonState = when (buttonState) {
-                        ButtonState.INITIAL -> ButtonState.LAUNCHED
-                        else -> ButtonState.INITIAL
-                    }
+                    buttonState = ButtonState.INITIAL
                     timerText = initialTimerText
                 }
             )
         )
     }
 
-    val onClick: () -> Unit = {
+    val onLaunchClick: () -> Unit = {
         buttonState = when (buttonState) {
-            ButtonState.INITIAL -> {
+            ButtonState.INITIAL,
+            ButtonState.PRE_LAUNCH -> {
                 timer.start()
                 ButtonState.LAUNCHED
             }
@@ -98,6 +105,7 @@ fun TimerView(
         transitionSpec = { colorTransitionSpec }
     ) {
         when (it) {
+            ButtonState.PRE_LAUNCH,
             ButtonState.INITIAL -> Color(0xffff9897)//0xfff869d5
             ButtonState.LAUNCHED -> Color(0xffea4d2c)
         }
@@ -134,25 +142,44 @@ fun TimerView(
                 style = MaterialTheme.typography.h2,
             )
 
-            Box(modifier = Modifier
-                .clickable { onClick() }
-                .animateContentSize()
-            ) {
+            if (buttonState == ButtonState.INITIAL) {
+                Row {
+                    Spacer(modifier = Modifier.size(8.dp))
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Color.Black)
+                            .padding(16.dp)
+                            .clickable {
+                                countDownTimerMillis = 10*1000
+                                buttonState = ButtonState.PRE_LAUNCH
+                            }
+                    ) {
+                        Text("10 sec", color = MaterialTheme.colors.onPrimary)
+                    }
+                }
+            } else {
+                Box(modifier = Modifier
+                    .clickable { onLaunchClick() }
+                    .animateContentSize()
+                ) {
 
-                Button(
-                    onClick = onClick,
-                )
-                {
-                    when (buttonState) {
-                        ButtonState.INITIAL -> {
-                            Text("Launch")
-                        }
-                        ButtonState.LAUNCHED -> {
-                            Text("Stop")
+                    Button(
+                        onClick = onLaunchClick,
+                    )
+                    {
+                        when (buttonState) {
+                            ButtonState.PRE_LAUNCH -> {
+                                Text("Launch")
+                            }
+                            ButtonState.LAUNCHED -> {
+                                Text("Stop")
+                            }
                         }
                     }
                 }
             }
+
         }
     }
 }
@@ -221,7 +248,7 @@ private fun countDownTimer(
 }
 
 enum class ButtonState {
-    INITIAL, LAUNCHED
+    INITIAL, PRE_LAUNCH, LAUNCHED
 }
 
 @Preview("Light Theme", widthDp = 360, heightDp = 640)
